@@ -42,7 +42,7 @@ osx_compilers = [
 ]
 
 compilers = {
-    "aarch64-unknown-linux-gnu" : [ "aarch64-linux-gnu-gcc" ],
+    "aarch64-unknown-linux-gnu" : linux_compilers,
     "aarch64-linux-android" : [ "aarch64-linux-android21-clang" ],
     "armv7-linux-androideabi" : [ "armv7a-linux-androideabi18-clang" ],
     "arm-unknown-linux-gnueabihf" : [ "arm-linux-gnueabihf-gcc" ],
@@ -98,6 +98,7 @@ def format_entries():
 entry_template = """
     - env: TARGET_X=%(target)s %(compilers)s FEATURES_X=%(features)s MODE_X=%(mode)s KCOV=%(kcov)s RUST_X=%(rust)s
       rust: %(rust)s
+      arch: %(host_arch)s
       os: %(os)s"""
 
 entry_indent = "      "
@@ -163,7 +164,7 @@ def format_entry(os, target, compiler, rust, mode, features):
         sources_with_dups = sum([get_sources_for_package(p) for p in packages],[])
         sources = sorted(list(set(sources_with_dups)))
         template += """
-      dist: trusty"""
+      dist: focal"""
 
     if sys == "linux":
         if packages:
@@ -176,6 +177,8 @@ def format_entry(os, target, compiler, rust, mode, features):
 
     cc = compiler
 
+    host_arch = "arm64" if arch == "aarch64" and os == "linux" and abi != "android" else "amd64"
+
     if os == "osx":
         os += "\n" + entry_indent + "osx_image: xcode10.1"
 
@@ -185,6 +188,7 @@ def format_entry(os, target, compiler, rust, mode, features):
     compilers += ""
 
     return template % {
+            "host_arch": host_arch,
             "compilers": " ".join(compilers),
             "features" : features,
             "mode" : mode,
@@ -205,9 +209,6 @@ def get_linux_packages_to_install(target, compiler, arch, kcov):
     if kcov:
         packages += [replace_cc_with_cxx(compiler)]
 
-    if target == "aarch64-unknown-linux-gnu":
-        packages += ["gcc-aarch64-linux-gnu",
-                     "libc6-dev-arm64-cross"]
     if target == "arm-unknown-linux-gnueabihf":
         packages += ["gcc-arm-linux-gnueabihf",
                      "libc6-dev-armhf-cross"]

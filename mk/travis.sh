@@ -20,11 +20,14 @@ IFS=$'\n\t'
 printenv
 
 case $TARGET_X in
-aarch64-unknown-linux-gnu)
-  export QEMU_LD_PREFIX=/usr/aarch64-linux-gnu
-  ;;
 arm-unknown-linux-gnueabihf)
   export QEMU_LD_PREFIX=/usr/arm-linux-gnueabihf
+  # We need a newer QEMU than Travis has.
+  # sudo is needed until the PPA and its packages are whitelisted.
+  # See https://github.com/travis-ci/apt-source-whitelist/issues/271
+  sudo add-apt-repository ppa:pietro-monteiro/qemu-backport -y
+  sudo apt-get update -qq
+  sudo apt-get install --no-install-recommends binfmt-support qemu-user-binfmt -y
   ;;
 aarch64-linux-android)
   # XXX: Tests are built but not run because we couldn't get the emulator to work; see
@@ -47,15 +50,6 @@ if [[ ! -z "${ANDROID_ABI-}" ]]; then
   curl -sSf https://build.travis-ci.org/files/rustup-init.sh | sh -s -- --default-toolchain=$RUST_X -y
   export PATH=$HOME/.cargo/bin:$ANDROID_HOME/ndk-bundle/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
   rustup default
-fi
-
-if [[ "$TARGET_X" =~ ^(arm|aarch64) && ! "$TARGET_X" =~ android ]]; then
-  # We need a newer QEMU than Travis has.
-  # sudo is needed until the PPA and its packages are whitelisted.
-  # See https://github.com/travis-ci/apt-source-whitelist/issues/271
-  sudo add-apt-repository ppa:pietro-monteiro/qemu-backport -y
-  sudo apt-get update -qq
-  sudo apt-get install --no-install-recommends binfmt-support qemu-user-binfmt -y
 fi
 
 if [[ ! "$TARGET_X" =~ "x86_64-" ]]; then
